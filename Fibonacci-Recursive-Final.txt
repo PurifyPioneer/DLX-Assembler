@@ -1,0 +1,115 @@
+pseudo code:
+
+int fibonacci(int n) {
+	if(n == 0 || n == 1) {
+		return n;
+	}
+	return fibonacci(n-1) + fibonacci(n-2);
+}
+
+code:
+
+Main:
+
+//Initialize Registers
+ADD R3, R0, R0          //Initialize R3 - Helper for input verification
+ADD R4, R0, R0          //Initialize R4 - Our Result
+ADD R5, R0, R0          //Initialize R5 - Stackpointer
+
+//Filter invalid input
+//PLEASE ENTER INPUT IN REGISTER ONE BEFORE EXECUTING
+SLTI R2, R1, #0         // Check if input is smaller than 0
+BNEZ R2, EndInvInput    // if so, go to end(invalid input)
+SUBI R3, R1, #41        // check if input is greater than 40
+SLTI R2, R3, #0         // ""
+BEQZ R2, EndInvinput    // if so, go to end(invalid input)
+
+SLEI R2, R1, #2     // if we have valid input but it is 0 or 1
+BNEZ R2, EndInput   // go to EndInput because we know the values without calculation
+
+
+SUBI R1, R1, #1     // correct input in such a way, that we are not 0 based (like an array)
+                    // n=9 should return fib(9) and not fib(10)
+JAL Fibonacci       // if we avoided all special cases and are still fine we call our recusrive method
+J End
+ 
+Fibonacci:
+SW 1000(R5), R31            // store jump address on stack
+ADDI R5, R5, #4             // increment stackpointer
+SUBI R1, R1, #1             // decrement n by one ( fib(n-1))
+SLEI R2, R1, #1             // check if n is less than 1 or equal to 1
+ADD  R4, R4,  R2            // if that is the case we would add 1 to our result otherwise we would add 0 and move on
+BNEZ R2, skip_recursion1    // if that is the case we skip the next recursive call (return) 
+
+//rekursiver Aufruf         
+SW 1000(R5), R1             // store current r1 on stack
+ADDI R5, R5, #4             // increment stackpointer
+JAL fibonacci               // recursively call fibonacci
+SUBI R5,  R5,  #4           // decrement stackpointer after method has returned
+LW R1, 1000(R5)             // load r1 from stack
+   
+skip_recursion1:      
+SUBI R1, R1, #1             // we substract one from r1 again so we have minus two combined (fib(n-2))
+SLEI R2, R1, #1             // heck if n is less than 1 or equal to 1
+ADD R4, R4, R2              // if that is the case we would add 1 to our result otherwise we would add 0 and move on
+BNEZ R2, skip_recursion2    // if that is the case we skip the next recursive call (return) 
+
+//rekursiver Aufruf #2
+SW 1000(R5), R1     // store current r1 on stack
+ADDI R5, R5, #4     // increment stackpointer
+JAL fibonacci       // recursively call fibonacci
+SUBI R5, R5,  #4    // decrement stackpointer after method has returned
+LW R1, 1000(R5)     // load r1 from stack
+ 
+skip_recursion2:
+SUBI R5, R5, #4     // decrement stackpointer
+LW R31, 1000(R5)    // load r31 from stack
+JR R31              // return where we left of
+   
+// We jump here directly from the start if our input is <=2
+// so we can handle our special cases 1 and 0 where we directly know the output
+// and adjust our program in such a way that the input does not have to be 0 based
+// (if input = 2)
+EndInput:
+SEQI R2, R1, #2     // check if input is equal to two
+BEQZ R2, EndOneZero // if not jump to one or zero case
+SUBI R1, R1, #1     // if it is we subtract one because fib(2) = 1 = fib(1)
+EndOneZero:
+ADD R4, R0, R1      // set result (r4) to zero or one depending on input
+ 
+End:
+    SW 2000(R0), R4  // store result in memory
+    
+EndInvInput:
+    HALT
+	
+//Comment:
+The program calculates the value of the fibonacci-sequence at n-th position
+
+R1 - holds argument of function (n)
+R2 - helps with calculation of boolen values
+R3 - helps us calculating if input is valid
+R4 - stores the result(s) of our function
+R5 - stackpointer
+
+First we initialize the necessary registers. We then check if our input is valid (has to be positive or smaller than 41 [0-40]).
+if we do not have valid input we go to the end (invalidinput).
+There is also a little test case for special input (0,1,2) that would take us directly to and end case.
+Otherwise we continue with our program and make a small quality of life
+improvement so our program really gives us fib(n) and not fib(n+1) what it would do if we did not correct it.
+We then make our call to our fibonacci method.
+We store the address we came from on the stack so we can get back when we return and increment the stackpointer afterwards (it should be self-explanatory when the stackpointer is
+incremented/decremented).
+We then decrement n by one and if it is one or zero we would add that to our result(r4) (return, skipping the recursive call).
+Normally n would be bigger than one and we would do our recursive call of the fibonacci mehtod.
+When we do that we store our current n on the stack, call our method and afterwards pop n from the stack again.
+We then determine like in the first part if we need to do our second recursive call and
+add to our result (adding zero could be necglected so we do not need an extra check).
+If we also finished the second recursive call we load r31 from the stack so we can return and do that
+until we have processed all recursive calls.
+We then would go to end(end) where we would store our result at memory address 2000.
+
+The the end case (end input) is there to assist with special input (0,1,2) where
+no recursion is needed/obstructive. The case check which of these values we have and adjust the result
+accordingly.
+

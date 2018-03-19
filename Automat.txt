@@ -1,0 +1,116 @@
+code:
+
+Main:
+// Intialisieren der Register R1-R6.
+// Diese Register enthalten die Informationen über
+// Zustandsübergangsfunktion und die Ausgabefunktion
+ADDI R1, R0, #8
+ADDI R2, R0, #14
+ADDI R3, R0, #6
+ADDI R4, R0, #20
+ADDI R5, R0, #0
+ADDI R6, R0, #5
+
+// Init R7 (counter), R11 (result), R12/R13 registers that are used to get current input value
+ADDI R7, R0, #1
+ADDI R11, R0, #0
+ADDI R12, R0, #0
+ADDI R13, R0, #0
+
+// Initialisiere Register R8-R10
+// Diese Register enthalten
+// R8  (denk aktuellen Zustand)
+// R9  (die Länge des aktuellen Eingabestrings)
+// R10 (der aktuelle Eingabestring)
+ADDI R8, R0, #1
+ADDI R9, R0, #6 //<-- CHANGE (BINARY-) STRING LENGHT HERE!
+ADDI R10, R0, #22 //<-- CHNAGE (BINARY-) STRING HERE!
+
+// Register R18,19 are help registers that only hold information
+// for our if/switch statement
+// R20 is used to pre-catch the next state
+Loop:
+    SLE R18, R7, R9 // check if r7 is smaller than r9
+    BEQZ R18, End   // if r7 >r9 (string lenght) we got to the end
+
+    ADDI R13, R0, #32   // set r13 to 32
+    SUB R13, R13, R7    // calc how much we need to shift to get input at current step
+    SLL R12, R10, R13   // shift left to delete everything left of current input
+    SRLI R12, R12, #31  // shift right so everything right of current input is deleted and input is at bit #1
+    ADDI R7, R7, #1     // increment r7
+
+// switch-case statement to determine in which state we are in currently
+// and select the correct register containg the information which state we need to enter
+// next.
+BNEZ R12, case1
+case0: // Fall für Eingabe 0 
+    SEQI R19, R8, #0    // check if we are in state 0
+    ADD R20, R0, R1     // precautiosly set r20 to value that would correspond to R8 = state0 and input0
+    BNEZ R19, calcFollowingState
+    
+    SEQI R19, R8, #1    // all cases are handle exactly like the first one, only the value R8 is cheked against
+    ADD R20, R0, R3     // is changed and r20 is set to the corresponding value 
+    BNEZ R19, calcFollowingState
+    
+    SEQI R19, R8, #2
+    ADD R20, R0, R5
+    BNEZ R19, calcFollowingState
+
+case1: // Fall für Eingabe 1
+    SEQI R19, R8, #0
+    ADD R20, R0, R2
+    BNEZ R19, calcFollowingState
+    
+    SEQI R19, R8, #1
+    ADD R20, R0, R4
+    BNEZ R19, calcFollowingState
+    
+    SEQI R19, R8, #2
+    ADD R20, R0, R6
+    BNEZ R19, calcFollowingState
+
+// this handles the main "calculation"
+calcFollowingState:
+    SLLI R8, R20, #30 // same priciple as above to get last two bytes that determine
+    SRLI R8, R8, #30  // which state r8 should have for next loop
+
+    SRLI R20, R20, #2   // calculate the third bit (output) from our state
+    SLLI R20, R20, #31  // we shift right to get rid of the two bits left from our third
+    SRLI R20, R20, #31  // and then shift left to get rif of all bits left of our third bit
+                        // we then shift back so our bit (output) is at position 1 and can easily be added
+    
+    SLLI R11, R11, #1   // shift r11 one to the left so we do not ovveride anything
+    ADD R11, R11, R20   // then add either 0 or 1 to r11 depending what the output is
+J Loop // continue with our loop
+
+End:
+SW 1000(R0), R11    // store our end value in memory (number read bitwise is our result!)
+SW 1004(R0), R8     // store our end state in memory for easier access
+HALT
+
+//Comment:
+
+//R1-R6 hold the information state is selected on which input (last two bits)
+//and also contain the out value in the third least signifficant bit
+R1	- state0 - input 0
+R2	- state0 - input 1
+
+R3	- state1 - input 0
+R4	- state1 - input 1
+
+R5	- state2 - input 0
+R6	- state2 - input 1
+
+R7	- acts as a counter for arbitrary for loop
+R8	- current state
+R9	- length of binary-string
+R10	- binary-string
+R11	- result
+R12	- both registers are used to calculate which bit of the binary-string is the 
+R13 - current input
+
+R18 - help registers that only hold information
+R19 - same as r18
+R20 - used to pre-catch the next state
+
+For further documentation on how the program works see handwritten explanation or comments in program code.

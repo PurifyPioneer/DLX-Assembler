@@ -1,0 +1,41 @@
+code:
+
+ADDI R4, R0, #1000 // R4 holds current memory address
+ADDI R1, R0, #1 //R1 holds result of last operaion
+ADDI R2, R0, #1 //R2 first temp variable
+ADDI R3, R0, #0 //R3 second temp variable
+Loop:
+ADD R1, R2, R3 // Calculate next number of fibonacci sequence
+SLT R5, R1, R0 // Test if we have an overflow (operand1 + operand 2 > 2^31)
+BNEZ R5, End    // If so we jump to the end of the program
+ADD R2, R0, R3  // If not we continue. We copy the value of r3 into r2
+ADD R3, R0, R1  // and the value of r1 into r3 so we are ready for the next calculation.
+SW 0(R4), R1    // At the end we store the calculated result in the memory
+ADDI R4, R4, #4 // Increment memory adress
+J Loop  
+End:
+HALT
+
+// Comment:
+The program calculates the fibonacci sequence to the greates value, that is still smaller than 2^31.
+
+First we initialize our registers:
+R4 - stores the information where we need to store our result in the memory so we do not ovveride any of our previously calculated results
+R1 - stores the result of the current loop (r2+r3)
+R2 - first temp register/variable 	- we use both register r3 and r2 to store the last two values of the fibonacci sequence so we
+R3 - second temp register/variable  - can easily add them in the next run.
+R5 - help register to check if we have an integer overflow
+
+The program first initializes the registers (for example: r4 with 1000, so we start storing our results at memory and upwards).
+It does not matter if r1 is initialized on the first run but i kept if for easier readability.
+The values of r2 and r3 have  to be like this so we get the two ones at the start.
+In the loop we then add r2 and r3 and store the result in r1.
+We then check if r1 is smaller than R0 (zero) which would mean, that we would have an overflow and store the value in r5.
+Next, if we have an overflow our BNEZ would bring ous directly to the end.
+Otherwise we could continue our loop and store the value of r3 in r2
+and the value of r1 (the result of the calculation) in r3 so we have the values ready for the next calculation.
+
+The last thing we then do is storing our result in the memory and after that incrementing the memory address so we don't override
+anything.
+
+The Jump and Labels should be self-explanatory.
